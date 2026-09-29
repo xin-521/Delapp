@@ -1,4 +1,5 @@
-﻿using System;
+﻿// NOTE: not currently compiled; removed from DelApp.csproj. Kept for reference.
+using System;
 
 namespace DelApp.Internals
 {

@@ -84,7 +84,9 @@ namespace DelApp.Internals
 
         public static void UnlockHandle(Dictionary<string, int> pathes, int[] locker)
         {
-            Dictionary<int, int> handleLocker = locker.Where(p => p >= 0).ToDictionary(p => p, p => p);
+            // SYSTEM_HANDLE_TABLE_ENTRY_INFO.UniqueProcessId is a USHORT, so key the
+            // lookup by the low 16 bits of the process id as well.
+            Dictionary<int, int> handleLocker = locker.Where(p => p >= 0).ToDictionary(p => p & 0xFFFF, p => p);
             ReleaseHandle(handleLocker, pathes);
         }
 
@@ -95,10 +97,22 @@ namespace DelApp.Internals
             Parallel.For(0, length, i =>
             {
                 IntPtr handle = NativeMethods.OpenProcess(ALL_ACCESS, false, locker[i]);
-                if (handle == IntPtr.Zero || ReleaseModules(handle, pathes) || ReleaseMappedFile(handle, pathes))
-                    locker[i] = -1;
-                NativeMethods.CloseHandle(handle);
-
+                if (handle == IntPtr.Zero)
+                    return;
+                try
+                {
+                    // Always try both: module enumeration can fail for a protected
+                    // process, and the mapped-file scan may still succeed.
+                    bool handled = ReleaseModules(handle, pathes);
+                    if (ReleaseMappedFile(handle, pathes))
+                        handled = true;
+                    if (handled)
+                        locker[i] = -1;
+                }
+                finally
+                {
+                    NativeMethods.CloseHandle(handle);
+                }
             });
         }
 
@@ -155,7 +169,7 @@ namespace DelApp.Internals
                 }
                 string path = InternelDriveInfo.GetNtPathFromDosPath(charBuf, clen);
                 ObjPool.ReturnCharBuffer(charBuf);
-                return targets.ContainsKey(path) ? 1 : 0;
+                return path != null && targets.ContainsKey(path) ? 1 : 0;
             }
 
         }
@@ -208,43 +222,52 @@ namespace DelApp.Internals
                 }
                 if (apiRet != Success)
                     return;
-                long handleCount = buffer.ReadSizeT(0);
+                int handleCount = buffer.Read<int>(0);
 
                 Parallel.For(0L, handleCount, l =>
                 {
-                    int pid = buffer.Read<short>((int)(IntPtr.Size + l * s_handleEntrySize));
+                    // SYSTEM_HANDLE_TABLE_ENTRY_INFO.UniqueProcessId is a USHORT, so only
+                    // the low 16 bits of the process id are available from the table.
+                    int pid = buffer.Read<ushort>((int)(IntPtr.Size + l * s_handleEntrySize));
 
                     if (handleLocker == null)
                     {
-                        if (pid == Utils.AppProcessId)
+                        if (pid == (Utils.AppProcessId & 0xFFFF))
                             return;
                     }
-                    else if (!handleLocker.ContainsKey(pid))
+                    else if (!handleLocker.TryGetValue(pid, out int fullPid))
                         return;
+                    else
+                        pid = fullPid;
 
                     IntPtr handle = NativeMethods.OpenProcess(ALL_ACCESS, false, pid);
                     if (handle == IntPtr.Zero)
                         return;
-                    IntPtr objHandle = new IntPtr(
-                               buffer.Read<short>((int)(l * s_handleEntrySize + IntPtr.Size + 6)
-                               ));
-                    // long access = buffer.ReadSizeT((int)(l * s_handleEntrySize + 8 + IntPtr.Size));
-                    IntPtr mh;
-                    if ((mh = CopyHandle(handle, objHandle)) == IntPtr.Zero)
-                        return;
-                    string path;
-                    bool isTargetHandle =
-                        NativeMethods.GetFileType(mh) == FILE_TYPE_DISK && // is file or dir
-                        (path = Utils.GetPathByFileHandle(mh)) != null &&
-                        pathes.ContainsKey(path);
+                    try
+                    {
+                        IntPtr objHandle = new IntPtr(
+                                   buffer.Read<ushort>((int)(l * s_handleEntrySize + IntPtr.Size + 6)
+                                   ));
+                        // long access = buffer.ReadSizeT((int)(l * s_handleEntrySize + 8 + IntPtr.Size));
+                        IntPtr mh;
+                        if ((mh = CopyHandle(handle, objHandle)) == IntPtr.Zero)
+                            return;
+                        string path;
+                        bool isTargetHandle =
+                            NativeMethods.GetFileType(mh) == FILE_TYPE_DISK && // is file or dir
+                            (path = Utils.GetPathByFileHandle(mh)) != null &&
+                            pathes.ContainsKey(path);
 
-                    NativeMethods.CloseHandle(mh);
-
-                    if (isTargetHandle &&
-                        (mh = CopyHandle(handle, objHandle, DuplicateCloseSource)) != IntPtr.Zero)
                         NativeMethods.CloseHandle(mh);
 
-                    NativeMethods.CloseHandle(handle);
+                        if (isTargetHandle &&
+                            (mh = CopyHandle(handle, objHandle, DuplicateCloseSource)) != IntPtr.Zero)
+                            NativeMethods.CloseHandle(mh);
+                    }
+                    finally
+                    {
+                        NativeMethods.CloseHandle(handle);
+                    }
 
                     IntPtr CopyHandle(IntPtr sph, IntPtr sh, int option = 0)
                     {

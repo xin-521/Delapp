@@ -19,7 +19,10 @@ namespace DelApp.Internals
 
         public void Resize(int size)
         {
-            Marshal.FreeHGlobal(_handle);
+            if (size <= 0)
+                size = IntPtr.Size;
+            if (_handle != IntPtr.Zero)
+                Marshal.FreeHGlobal(_handle);
             _handle = Marshal.AllocHGlobal(size);
             Size = size;
         }
@@ -45,7 +48,11 @@ namespace DelApp.Internals
 
         public void Dispose()
         {
-            Marshal.FreeHGlobal(_handle);
+            if (_handle != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(_handle);
+                _handle = IntPtr.Zero;
+            }
         }
     }
 }

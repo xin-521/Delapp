@@ -10,31 +10,44 @@ namespace DelApp.Internals
         private static readonly int s_pro_drive_count = Environment.GetLogicalDrives().Length << 1;
         private static readonly Dictionary<string, string> s_driveCache = new Dictionary<string, string>(s_pro_drive_count);
         private static readonly Dictionary<string, string> s_driveDosNameMap = new Dictionary<string, string>(s_pro_drive_count);
+        private static readonly object s_lock = new object();
 
-        public static bool IsDrive(string path) => s_driveCache.ContainsKey(path);
+        public static bool IsDrive(string path)
+        {
+            lock (s_lock)
+                return s_driveCache.ContainsKey(path);
+        }
 
         public static void RefreshDriveCache()
         {
-            s_driveCache.Clear();
-            s_driveDosNameMap.Clear();
-            foreach (string item in RefreshDriveCore())
+            lock (s_lock)
             {
-                AddToCacheCore(item);
+                s_driveCache.Clear();
+                s_driveDosNameMap.Clear();
+                foreach (string item in RefreshDriveCore())
+                {
+                    AddToCacheCore(item);
+                }
             }
         }
 
 
         public static IEnumerable<string> RefreshDriveCacheAndReturnsDriveName()
         {
-
-            s_driveCache.Clear();
-            s_driveDosNameMap.Clear();
-
-            foreach (string item in RefreshDriveCore())
+            // Eager snapshot: the caller may enumerate while another thread refreshes.
+            var driveNames = new List<string>();
+            lock (s_lock)
             {
-                AddToCacheCore(item);
-                yield return item;
+                s_driveCache.Clear();
+                s_driveDosNameMap.Clear();
+
+                foreach (string item in RefreshDriveCore())
+                {
+                    AddToCacheCore(item);
+                    driveNames.Add(item);
+                }
             }
+            return driveNames;
         }
 
 
@@ -60,42 +73,45 @@ namespace DelApp.Internals
 
         private static unsafe string GetNtPathFromDosPathCore(char* s, int charCount)
         {
-            int length;
-            int i = 0, j = 0;
-            foreach (KeyValuePair<string, string> item in s_driveDosNameMap)
+            lock (s_lock)
             {
-                length = item.Key.Length;
-                if (length < charCount)
+                int length;
+                int i = 0, j = 0;
+                foreach (KeyValuePair<string, string> item in s_driveDosNameMap)
                 {
-                    fixed (char* pDos = item.Key)
+                    length = item.Key.Length;
+                    if (length < charCount)
                     {
-                        while (i < length)
-                        {
-                            if (pDos[i] != s[i])
-                            {
-                                goto final;
-                            }
-                            ++i;
-                        }
-                        i -= item.Value.Length;
-                        fixed (char* pWin = item.Value)
+                        fixed (char* pDos = item.Key)
                         {
                             while (i < length)
                             {
-                                s[i++] = pWin[j++];
+                                if (pDos[i] != s[i])
+                                {
+                                    goto final;
+                                }
+                                ++i;
                             }
+                            i -= item.Value.Length;
+                            fixed (char* pWin = item.Value)
+                            {
+                                while (i < length)
+                                {
+                                    s[i++] = pWin[j++];
+                                }
+                            }
+                            length = item.Key.Length - item.Value.Length;
+                            return new string(s, length, charCount - length);
+
                         }
-                        length = item.Key.Length - item.Value.Length;
-                        return new string(s, length, charCount - length);
-
                     }
-                }
 
-            final:
-                i = 0;
-                j = 0;
+                final:
+                    i = 0;
+                    j = 0;
+                }
+                return null;
             }
-            return null;
         }
 
 

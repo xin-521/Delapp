@@ -1,4 +1,5 @@
-﻿namespace DelApp.Internals.Win32
+﻿// NOTE: not currently compiled; removed from DelApp.csproj. Kept for reference.
+namespace DelApp.Internals.Win32
 {
 
     internal enum WaitObjectResult : uint

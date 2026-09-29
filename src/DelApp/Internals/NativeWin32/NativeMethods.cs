@@ -110,12 +110,6 @@ namespace DelApp.Internals.Win32
         [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = false, CallingConvention = CallingConvention.Winapi)]
         public static extern bool IsWow64Process(IntPtr hProcess, [Out] out bool Wow64Process);
 
-        [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = false, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
-        public static extern IntPtr GetModuleHandleW(string lpModuleName);
-
-        [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = false, CharSet = CharSet.Ansi, BestFitMapping = false, CallingConvention = CallingConvention.Winapi)]
-        public static extern IntPtr GetProcAddress(IntPtr module, string proc);
-
         [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = false)]
         public static extern bool CloseHandle(IntPtr hObject);
 

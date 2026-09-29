@@ -74,3 +74,14 @@ Delapp 可以删除被占用的文件 —— 被其他程序打开的文件，正在运行中的程序及其“dll
 `快速删除` 通过[重新启动管理器](https://learn.microsoft.com/en-us/windows/win32/RstMgr/restart-manager-portal)来获取文件的占用者。但不幸的是，重新启动管理器无法处理被占用的文件夹——尽管这个场景非常罕见，但依然需要有相关的处理方案：`删除` 功能的速度更慢，因为它会遍历所有程序，来获取占用情况。
 
 `快速删除` 的另一个潜在问题在于它以递归的方式遍历文件夹。Windows下路径的最大长度为 32767，这意味着目录的深度可能会非常大，所以在遇到堆栈溢出错误时可以尝试 `删除` 功能。
+## 翻译
+
+如果你愿意帮助把 Delapp 翻译成你的语言，欢迎提交 PR：
+
+- 新建一个继承自 `DelApp.Locals.AppLanguageProvider<YourLanguageProvider>` 的类
+- 让 `abstract string TwoLetterISOLanguageName` 属性返回 [ISO 639-1 两字母或 ISO 639-3 三字母代码](https://learn.microsoft.com/zh-cn/dotnet/api/system.globalization.cultureinfo.twoletterisolanguagename?view=netframework-4.8)
+- 让 `abstract int LCID` 属性返回目标语言的 [区域设置标识符](https://learn.microsoft.com/zh-cn/dotnet/api/system.globalization.cultureinfo.lcid?view=netframework-4.8)
+- 实现其余返回对应译文的成员
+- 在 `DelApp.Program` 的 `StartApp()` 方法中加入：`YourLanguageProvider.Instance.Register();`
+
+也可以直接开一个 issue 提供你的翻译。

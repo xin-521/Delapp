@@ -23,16 +23,5 @@ namespace Delapp.Properties {
             }
         }
         
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool ClearListEnabled {
-            get {
-                return ((bool)(this["ClearListEnabled"]));
-            }
-            set {
-                this["ClearListEnabled"] = value;
-            }
-        }
     }
 }

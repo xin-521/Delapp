@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.IO.Pipes;
 using System.Text;
 using System.Threading;
@@ -32,7 +33,7 @@ namespace DelApp.Internals
                 int len;
                 try
                 {
-                    pipeClient.Connect();
+                    pipeClient.Connect(5000);
                     unsafe
                     {
                         fixed (byte* p = lenBuf)
@@ -56,50 +57,76 @@ namespace DelApp.Internals
 
         private static async void ServiceCoreAsync(object stateInfo)
         {
-            using (var pipeServer = new NamedPipeServerStream(Utils.MyGuidString, PipeDirection.In))
+            try
             {
-                var lenBuf = new byte[4];
-                var buffer = new byte[DEFALUT_BYTES_BUFFER_SIZE];
-                int len;
-                string path;
-                while (true)
+                using (var pipeServer = new NamedPipeServerStream(Utils.MyGuidString, PipeDirection.In))
                 {
-                    try
-                    {
-                        if (!pipeServer.IsConnected)
-                            await pipeServer.WaitForConnectionAsync().ConfigureAwait(false);
-
-                        unsafe
-                        {
-                            fixed (byte* p = lenBuf)
-                            {
-                                while (pipeServer.Read(lenBuf, 0, 4) == 4)
-                                {
-                                    len = *(int*)p;
-                                    if (pipeServer.Read(buffer, 0, len) == len)
-                                        PathQueue.Enqueue(new FileNDir(Encoding.Unicode.GetString(buffer, 0, len)));
-                                }
-                                PathRecived?.Invoke(PathQueue, EventArgs.Empty);
-                            }
-                        }
-                    }
-                    catch (Exception ecx)
-                    {
-                        Utils.WriteErrorLog(ecx.Message);
-                    }
-                    finally
+                    var lenBuf = new byte[4];
+                    var buffer = new byte[DEFALUT_BYTES_BUFFER_SIZE];
+                    int len;
+                    while (true)
                     {
                         try
                         {
-                            pipeServer.Disconnect();
+                            if (!pipeServer.IsConnected)
+                                await pipeServer.WaitForConnectionAsync().ConfigureAwait(false);
+
+                            unsafe
+                            {
+                                fixed (byte* p = lenBuf)
+                                {
+                                    // Named pipes are byte streams: a single Read may return
+                                    // fewer bytes than requested, so read the framing exactly.
+                                    while (ReadExactly(pipeServer, lenBuf, 4))
+                                    {
+                                        len = *(int*)p;
+                                        if (len < 0 || len > 4 * 1024 * 1024)
+                                            break; // desynced; drop the connection
+                                        if (len > buffer.Length)
+                                            buffer = new byte[len];
+                                        if (!ReadExactly(pipeServer, buffer, len))
+                                            break;
+                                        PathQueue.Enqueue(new FileNDir(Encoding.Unicode.GetString(buffer, 0, len)));
+                                    }
+                                    PathRecived?.Invoke(PathQueue, EventArgs.Empty);
+                                }
+                            }
                         }
-                        catch (Exception ecx2)
+                        catch (Exception ecx)
                         {
-                            Utils.WriteErrorLog(ecx2.Message);
+                            Utils.WriteErrorLog(ecx.Message);
+                        }
+                        finally
+                        {
+                            try
+                            {
+                                pipeServer.Disconnect();
+                            }
+                            catch (Exception ecx2)
+                            {
+                                Utils.WriteErrorLog(ecx2.Message);
+                            }
                         }
                     }
                 }
             }
+            catch (Exception ecx)
+            {
+                Utils.WriteErrorLog(ecx.Message);
+            }
+        }
+
+        private static bool ReadExactly(Stream stream, byte[] buffer, int count)
+        {
+            int offset = 0;
+            while (offset < count)
+            {
+                int read = stream.Read(buffer, offset, count - offset);
+                if (read <= 0)
+                    return false;
+                offset += read;
+            }
+            return true;
         }
 
 

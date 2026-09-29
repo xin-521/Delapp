@@ -11,7 +11,7 @@ namespace DelApp.Internals
     {
         private const int ERROR_MORE_DATA = 234;
 
-        private readonly uint _handle;
+        private uint _handle;
 
         private RestartManagerHelper()
         {
@@ -22,6 +22,17 @@ namespace DelApp.Internals
         public int[] GetHolderList(out RmRebootReason reason, params string[] fileNames)
         {
             reason = RmRebootReason.None;
+
+            // RmRegisterResources appends to the session, so restart it for each query;
+            // otherwise holders of previously registered files leak into the result.
+            if (_handle != 0)
+                NativeMethods.RmEndSession(_handle);
+            if (NativeMethods.RmStartSession(out _handle, 0, Utils.MyGuidStringWithNullChar) != 0)
+            {
+                _handle = 0;
+                return Array.Empty<int>();
+            }
+
             if (NativeMethods.RmRegisterResources(
                 _handle,
                 fileNames.Length, fileNames,
@@ -29,7 +40,7 @@ namespace DelApp.Internals
                 0, null) != 0)
                 return Array.Empty<int>();
 
-            RmProcessInfo[] affectedApps = null;
+            RmProcessInfo[] affectedApps = Array.Empty<RmProcessInfo>();
             uint nCount = 0;
             int err;
             while ((err = NativeMethods.RmGetList(_handle, out var nlength, ref nCount, affectedApps, out reason)) == ERROR_MORE_DATA)

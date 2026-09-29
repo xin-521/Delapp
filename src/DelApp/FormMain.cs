@@ -58,6 +58,7 @@ namespace DelApp
             }
             ListViewMain.EndUpdate();
             EnsureButtonForHoleList();
+            AddPipeSendedFile();
 
             IAppLanguageProvider lp = AppLanguageService.LanguageProvider;
 
@@ -78,6 +79,13 @@ namespace DelApp
         }
 
         private void PipeService_PathRecived(object sender, EventArgs e)
+        {
+            // Raised on a ThreadPool thread by PipeService; marshal to the UI thread.
+            if (IsHandleCreated && !IsDisposed)
+                BeginInvoke((Action)PipeService_PathRecivedOnUiThread);
+        }
+
+        private void PipeService_PathRecivedOnUiThread()
         {
             if (ListViewMain.Enabled)
                 AddPipeSendedFile();
@@ -115,6 +123,8 @@ namespace DelApp
 
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
         {
+            PipeService.PathRecived -= PipeService_PathRecived;
+            _openPathDialog.Dispose();
             if (_canDrag)
             {
                 RemoveDragDropMsgFilter(ListViewMain);
@@ -248,6 +258,15 @@ namespace DelApp
             return ToolStripButtonFastDelete.Enabled = ToolStripButtonDelete.Enabled = ToolStripMenuItemClearList.Enabled = ListViewMain.Items.Count > 0;
         }
 
+        private static Dictionary<string, int> ToPathSet(IEnumerable<FileNDir> items)
+        {
+            // Delete may report the same path twice, so do not use ToDictionary.
+            var set = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in items)
+                set[item.FullPath] = 0;
+            return set;
+        }
+
         private void BackgroundWorkerMain_DoWork(object sender, DoWorkEventArgs e)
         {
             if ((bool)e.Argument)
@@ -275,11 +294,11 @@ namespace DelApp
                 InternelDriveInfo.RefreshDriveCache();
 
                 int[] locker = RestartManagerHelper.Shared.GetHolderList(out _, files.Select(f => f.FullPath).ToArray());
-                FileUnlocker.UnlockModuleAndMemory(files.Select(fd1 => fd1.FullPath).ToDictionary(s => s, s => 0), locker);
+                FileUnlocker.UnlockModuleAndMemory(ToPathSet(files), locker);
                 DeleteLockedFile(files, items);
                 if (files.Count > 0)
                 {
-                    FileUnlocker.UnlockHandle(files.Select(fd1 => fd1.FullPath).ToDictionary(s => s, s => 0), locker);
+                    FileUnlocker.UnlockHandle(ToPathSet(files), locker);
                     DeleteLockedFile(files, items);
                 }
                 DeleteLockedFile(dirs, items);
@@ -332,11 +351,11 @@ namespace DelApp
             if (pathes.Count > 0)
             {
                 InternelDriveInfo.RefreshDriveCache();
-                FileUnlocker.UnlockModuleAndMemory(pathes.Select(pt => pt.FullPath).ToDictionary(s => s, s => 0));
+                FileUnlocker.UnlockModuleAndMemory(ToPathSet(pathes));
                 DeleteLockedFile(pathes, items);
                 if (pathes.Count > 0)
                 {
-                    FileUnlocker.UnlockHandle(pathes.Select(pt => pt.FullPath).ToDictionary(s => s, s => 0));
+                    FileUnlocker.UnlockHandle(ToPathSet(pathes));
                     DeleteLockedFile(pathes, items);
                 }
                 void DeleteLockedFile(List<FileNDir> pl, ListView.ListViewItemCollection ob)
@@ -372,12 +391,19 @@ namespace DelApp
 
         private void BackgroundWorkerMain_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            if ((int)e.Result != 0)
+            if (e.Error != null)
+            {
+                Utils.WriteErrorLog(e.Error.ToString());
+                MessageBox.Show(e.Error.ToString(), "Delapp");
+            }
+            else if (e.Result == null || (int)e.Result != 0)
             {
                 MessageBox.Show(AppLanguageService.LanguageProvider.Message_NotFullyCompleted, "Delapp");
             }
             else
+            {
                 SoundPlayHelper.Shared.TryPlayEmptyRecyclebin(true);
+            }
 
             ToolStripDropDownButtonFile.Enabled = true;
             ToolStripDropDownButtonEdit.Enabled = true;

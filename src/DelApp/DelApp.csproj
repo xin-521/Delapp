@@ -64,7 +64,6 @@
       <DependentUpon>FormMain.cs</DependentUpon>
     </Compile>
     <Compile Include="Internals\FileUnlocker.cs" />
-    <Compile Include="Internals\HandleInfo.cs" />
     <Compile Include="Internals\NativeWin32\ChangeFilterStruct.cs" />
     <Compile Include="Internals\NativeWin32\FindFileHandle.cs" />
     <Compile Include="Internals\NativeWin32\LUID.cs" />
@@ -73,18 +72,14 @@
     <Compile Include="Internals\NativeWin32\SHSTOCKICONINFO.cs" />
     <Compile Include="Internals\NativeWin32\SingleTokenPrivilegeOn.cs" />
     <Compile Include="Internals\NativeWin32\SysInfo.cs" />
-    <Compile Include="Internals\NativeWin32\WaitObjectResult.cs" />
     <Compile Include="Internals\NativeWin32\Win32FindData.cs" />
-    <Compile Include="Internals\ProcessModuleLite.cs" />
     <Compile Include="Internals\UnmanagedBuffer.cs" />
     <Compile Include="Locals\AppLanguageProvider.cs" />
-    <Compile Include="Internals\AppLanguageService.cs" />
+    <Compile Include="Locals\AppLanguageService.cs" />
     <Compile Include="Internals\InternelDriveInfo.cs" />
     <Compile Include="Internals\DisposableSingleton.cs" />
-    <Compile Include="Internals\PeReader.cs" />
-    <Compile Include="Internals\RemoteFunction.cs" />
     <Compile Include="Internals\RestartManagerHelper.cs" />
-    <Compile Include="Internals\IAppLanguageProvider.cs" />
+    <Compile Include="Locals\IAppLanguageProvider.cs" />
     <Compile Include="Locals\AppLanguageProviderChs.cs" />
     <Compile Include="Locals\AppLanguageProviderEn.cs" />
     <Compile Include="OpenFileDialogLite.cs">
@@ -108,16 +103,6 @@
     <EmbeddedResource Include="OpenFileDialogLite.resx">
       <DependentUpon>OpenFileDialogLite.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-      <DesignTime>True</DesignTime>
-    </Compile>
     <None Include="app.manifest" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

@@ -11,7 +11,7 @@ A simple tool to delete files and folders in Windows.
 
 ## Getting Started
 
-Delapp is a single-file app, no installation required, just [download latest release version](https://github.com/differentrain/Delapp/releases/latest/download/Delapp.zip), and extract it into wherever you want.
+Delapp ships as a single `Delapp.exe`, no installation required, just [download latest release version](https://github.com/differentrain/Delapp/releases/latest/download/Delapp.zip), and extract it into wherever you want.
 
 ![](./img/Main01_en.png)
 
@@ -85,7 +85,7 @@ I would be grateful if you could help me to translate Delapp to your own languag
 
 You can pull a request to submit the translated version:
 
-- Create a new class derived from `DelApp.Locals.AppLanguageProvider`
+- Create a new class derived from `DelApp.Locals.AppLanguageProvider<YourLanguageProvider>` (the type argument is the provider itself), for example: `class YourLanguageProvider : AppLanguageProvider<YourLanguageProvider>`
 - Let `abstract string TwoLetterISOLanguageName` property returns the [ISO 639-1 two-letter or ISO 639-3 three-letter code](https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.twoletterisolanguagename?view=netframework-4.8)
 - Let `abstract int LCID` property returns the [culture identifier](https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.lcid?view=netframework-4.8) for the target language
 - Implement other members which returns relevant translated string.

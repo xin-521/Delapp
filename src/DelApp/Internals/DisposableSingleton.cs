@@ -6,6 +6,7 @@ namespace DelApp.Internals
         where TSelf : DisposableSingleton<TSelf>
     {
         private static TSelf _sharedInstance;
+        private static readonly object s_lock = new object();
         private bool _disposedValue;
 
         // the inherited class must and has better has only a private constructor without arguments. 
@@ -13,16 +14,23 @@ namespace DelApp.Internals
         {
             get
             {
-                if (_sharedInstance == null)
-                    _sharedInstance = (TSelf)Activator.CreateInstance(typeof(TSelf), true);
-                return _sharedInstance;
+                lock (s_lock)
+                {
+                    if (_sharedInstance == null)
+                        _sharedInstance = (TSelf)Activator.CreateInstance(typeof(TSelf), true);
+                    return _sharedInstance;
+                }
             }
         }
 
         // Invoke when app exiting
         public static void ReleaseSharedInstance()
         {
-            ((IDisposable)_sharedInstance)?.Dispose();
+            lock (s_lock)
+            {
+                ((IDisposable)_sharedInstance)?.Dispose();
+                _sharedInstance = null;
+            }
         }
 
 

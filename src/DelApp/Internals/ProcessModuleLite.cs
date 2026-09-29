@@ -1,4 +1,5 @@
-﻿//using DelApp.Internals.Win32;
+﻿// NOTE: not currently compiled; removed from DelApp.csproj. Kept for reference.
+//using DelApp.Internals.Win32;
 //using Microsoft.Win32.SafeHandles;
 //using System;
 //using System.Collections.Generic;

@@ -10,6 +10,7 @@ namespace DelApp.Internals
     internal sealed class FileNDir : IEquatable<FileNDir>
     {
         private const int ERROR_FILE_NOT_FOUND = 2;
+        private const int ERROR_PATH_NOT_FOUND = 3;
         private const int ERROR_ACCESS_DENIED = 5;
         private const int ERROR_DIR_NOT_EMPTY = 145;
         private const int ERROR_SHARING_VIOLATION = 0x20;
@@ -29,12 +30,15 @@ namespace DelApp.Internals
         {
             get
             {
+                int length = FullPath.Length;
+                if (length == 0)
+                    return false;
                 unsafe
                 {
 
                     fixed (char* p = FullPath)
                     {
-                        char ch = p[FullPath.Length - 1];
+                        char ch = p[length - 1];
                         return ch == '.' || ch == ' ';
                     }
                 }
@@ -87,6 +91,15 @@ namespace DelApp.Internals
             }
         }
 
+        // A reparse-point directory (junction / mount point / directory symlink) is
+        // treated as a leaf: the link itself is removed and its target is not traversed.
+        // This matches the usual "rm -r does not follow symlinks" behavior and, more
+        // importantly, prevents infinite recursion on self-referencing junctions such
+        // as "%LOCALAPPDATA%\Application Data" -> "%LOCALAPPDATA%".
+        private static bool IsReparseDir(FileAttributes attr) =>
+            (attr & (FileAttributes.Directory | FileAttributes.ReparsePoint)) ==
+            (FileAttributes.Directory | FileAttributes.ReparsePoint);
+
         public bool Delete(List<FileNDir> lockedList)
         {
             FileAttributes attr = Attributes;
@@ -94,7 +107,9 @@ namespace DelApp.Internals
             if (attr == 0)
                 return true;
             else if ((attr & FileAttributes.Directory) != 0)
-                return DeleteDirCore(lockedList);
+                return IsReparseDir(attr)
+                    ? DeleteFileNDir(lockedList, NativeMethods.RemoveDirectoryW)
+                    : DeleteDirCore(lockedList);
             else
                 return DeleteFileNDir(lockedList, NativeMethods.DeleteFileW);
         }
@@ -105,7 +120,9 @@ namespace DelApp.Internals
             if (attr == 0)
                 return true;
             else if ((attr & FileAttributes.Directory) != 0)
-                return DeleteDirCore2(fileList, dirList);
+                return IsReparseDir(attr)
+                    ? DeleteFileNDir(dirList, NativeMethods.RemoveDirectoryW)
+                    : DeleteDirCore2(fileList, dirList);
             else
                 return DeleteFileNDir(fileList, NativeMethods.DeleteFileW);
         }
@@ -117,15 +134,14 @@ namespace DelApp.Internals
             if (!Exists || !IsInvalidPath)
                 return false;
 
-            string npath = GetCorrectPath(FullPath);
+            string basePath = GetCorrectPath(FullPath);
+            string npath = basePath;
             string lpath = LongPathPrefix + npath;
-            int i = 2;
 
-            while (GetFileAttributes(lpath) != 0)
+            for (int i = 2; GetFileAttributes(lpath) != 0; ++i)
             {
-                lpath += i;
-                npath += i;
-                ++i;
+                npath = basePath + i;
+                lpath = LongPathPrefix + npath;
             }
 
             bool ret = NativeMethods.MoveFileW(LongPathPrefix + FullPath, lpath);
@@ -182,9 +198,15 @@ namespace DelApp.Internals
                 {
                     foreach (var item in GetChildsCore(mdirs[i++].FullPath))
                     {
-                        if (item.IsFile)
+                        FileAttributes itemAttr = item.Attributes;
+                        if ((itemAttr & FileAttributes.Directory) == 0)
                         {
                             item.DeleteFileNDir(mlockedList, NativeMethods.DeleteFileW);
+                        }
+                        else if (IsReparseDir(itemAttr))
+                        {
+                            // leaf: remove the link itself, do not descend into the target
+                            item.DeleteFileNDir(mlockedList, NativeMethods.RemoveDirectoryW);
                         }
                         else
                         {
@@ -210,15 +232,17 @@ namespace DelApp.Internals
         {
             var path = LongPathPrefix + FullPath;
             var attr = GetFileAttributes(path);
-            if (attr == INVALID_FILE_ATTRIBUTES)
-                return true;
             if ((attr & FileAttributes.ReadOnly) != 0)
                 NativeMethods.SetFileAttributesW(path, attr - 1);
             if (func(path))
                 return true;
             int erro = Marshal.GetLastWin32Error();
+            if (erro == ERROR_FILE_NOT_FOUND || erro == ERROR_PATH_NOT_FOUND)
+                return true; // already gone
             if (erro == ERROR_ACCESS_DENIED || erro == ERROR_SHARING_VIOLATION || erro == ERROR_DIR_NOT_EMPTY)
-                lockedList?.Add(this);
+                if (lockedList != null)
+                    lock (lockedList) // FastDelete runs this from Parallel.ForEach workers
+                        lockedList.Add(this);
             return false;
         }
 

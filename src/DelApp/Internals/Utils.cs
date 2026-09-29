@@ -44,15 +44,37 @@ namespace DelApp.Internals
             char[] buffer = ObjPool.RentCharBuffer();
             try
             {
-                int len = NativeMethods.GetFinalPathNameByHandleW(fileHandle, buffer, buffer.Length - 1, 0);
+                int len = NativeMethods.GetFinalPathNameByHandleW(fileHandle, buffer, buffer.Length, 0);
                 if (len == 0)
                     return null;
-                return new string(buffer, 4, len - 4);
+                if (len > buffer.Length)
+                {
+                    char[] large = new char[len];
+                    len = NativeMethods.GetFinalPathNameByHandleW(fileHandle, large, large.Length, 0);
+                    if (len == 0 || len > large.Length)
+                        return null;
+                    return StripLongPathPrefix(large, len);
+                }
+                return StripLongPathPrefix(buffer, len);
             }
             finally
             {
                 ObjPool.ReturnCharBuffer(buffer);
             }
+        }
+
+        private static string StripLongPathPrefix(char[] buffer, int len)
+        {
+            // GetFinalPathNameByHandleW returns a "\\?\C:\..." path (or "\\?\UNC\srv\share"
+            // for a UNC path, which must map back to "\\").
+            if (len > 0 && buffer[len - 1] == '\0')
+                --len;
+            if (len < 4)
+                return null;
+            if (len >= 8 &&
+                buffer[4] == 'U' && buffer[5] == 'N' && buffer[6] == 'C' && buffer[7] == '\\')
+                return @"\\" + new string(buffer, 8, len - 8);
+            return new string(buffer, 4, len - 4);
         }
 
 
@@ -69,7 +91,7 @@ namespace DelApp.Internals
             {
                 var file = CreateFromDropItem(hDrop, i);
                 if (!file.IsDrive && file.Exists)
-                    yield return CreateFromDropItem(hDrop, i);
+                    yield return file;
             }
         Final_Drag_Final:
             NativeMethods.DragFinish(hDrop);
@@ -110,7 +132,7 @@ namespace DelApp.Internals
             StreamWriter sw = null;
             try
             {
-                fs = File.Open("DelAppError.log", FileMode.Append);
+                fs = File.Open(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DelAppError.log"), FileMode.Append);
                 sw = new StreamWriter(fs);
                 sw.Write(info);
             }
