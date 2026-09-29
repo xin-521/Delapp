@@ -15,6 +15,7 @@
         string UI_Edit_RemoveFromList { get; }
         string UI_Edit_ClearList { get; }
         string UI_Edit_FixPath { get; }
+        string UI_Edit_ProtectSystem { get; }
 
         string UI_FastDelete { get; }
         string UI_Delete { get; }

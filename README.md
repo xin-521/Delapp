@@ -79,6 +79,16 @@ Unfortunately, Restart Manager can not process the **folder** opened by other pr
 
 Another potential problem of `Fast delete` is that it uses recursion to traversal folders. The maximum length of path is 32767 characters, so the value of maximum directory depth in theory may be very large. So if you got `StackoverflowException`, try `Delete` instead of `Fast delete`.
 
+## System folder protection
+
+By default, `Edit` -- `Protect system folder` is checked, and the Windows system folder (`%SystemRoot%`, usually `C:\Windows`) together with everything inside it is left untouched:
+
+- Sweeping a parent folder (for example `C:\`) keeps the Windows folder and its whole subtree intact.
+- Adding `C:\Windows` (or any path inside it) explicitly keeps it in the delete-list instead of deleting it.
+- Uncheck the menu item to allow deleting system files.
+
+A sibling such as `C:\Windows.old` is not protected.
+
 ## Translations
 
 I would be grateful if you could help me to translate Delapp to your own language. 

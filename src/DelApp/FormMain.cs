@@ -72,6 +72,9 @@ namespace DelApp
             ToolStripMenuItemRemove.Text = lp.UI_Edit_RemoveFromList;
             ToolStripMenuItemClearList.Text = lp.UI_Edit_ClearList;
             ToolStripMenuItemFix.Text = lp.UI_Edit_FixPath;
+            ToolStripMenuItemProtectSystem.Text = lp.UI_Edit_ProtectSystem;
+            ToolStripMenuItemProtectSystem.Checked = SystemFileProtector.Enabled;
+            ToolStripMenuItemProtectSystem.CheckedChanged += ToolStripMenuItemProtectSystem_CheckedChanged;
 
             ToolStripButtonFastDelete.Text = lp.UI_FastDelete;
             ToolStripButtonDelete.Text = lp.UI_Delete;
@@ -409,6 +412,11 @@ namespace DelApp
             ToolStripDropDownButtonEdit.Enabled = true;
             ListViewMain.Enabled = true;
             AddPipeSendedFile();
+        }
+
+        private void ToolStripMenuItemProtectSystem_CheckedChanged(object sender, EventArgs e)
+        {
+            SystemFileProtector.Enabled = ToolStripMenuItemProtectSystem.Checked;
         }
 
         private void ToolStripMenuItemSource_Click(object sender, EventArgs e)

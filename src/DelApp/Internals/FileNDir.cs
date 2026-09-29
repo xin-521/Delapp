@@ -102,6 +102,10 @@ namespace DelApp.Internals
 
         public bool Delete(List<FileNDir> lockedList)
         {
+            // A protected system folder is left as-is, so it stays in the delete-list.
+            if (SystemFileProtector.IsProtected(FullPath))
+                return false;
+
             FileAttributes attr = Attributes;
 
             if (attr == 0)
@@ -116,6 +120,11 @@ namespace DelApp.Internals
 
         public bool FastDelete(List<FileNDir> fileList, List<FileNDir> dirList)
         {
+            // A protected system folder is left as-is, so it stays in the delete-list.
+            // This also spares it when reached while sweeping a parent folder.
+            if (SystemFileProtector.IsProtected(FullPath))
+                return false;
+
             FileAttributes attr = Attributes;
             if (attr == 0)
                 return true;
@@ -202,6 +211,10 @@ namespace DelApp.Internals
                         if ((itemAttr & FileAttributes.Directory) == 0)
                         {
                             item.DeleteFileNDir(mlockedList, NativeMethods.DeleteFileW);
+                        }
+                        else if (SystemFileProtector.IsProtected(item.FullPath))
+                        {
+                            // protected system folder: keep it and its whole subtree
                         }
                         else if (IsReparseDir(itemAttr))
                         {

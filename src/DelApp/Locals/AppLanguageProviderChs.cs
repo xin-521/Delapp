@@ -16,6 +16,7 @@
         public override string UI_Edit_RemoveFromList => "移除项目";
         public override string UI_Edit_ClearList => "清空列表";
         public override string UI_Edit_FixPath => "修复错误路径";
+        public override string UI_Edit_ProtectSystem => "保护系统文件夹";
 
         public override string UI_FastDelete => "快速删除";
         public override string UI_Delete => "删除";

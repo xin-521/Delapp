@@ -42,6 +42,8 @@
             this.ToolStripMenuItemClearList = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.ToolStripMenuItemFix = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
+            this.ToolStripMenuItemProtectSystem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.ToolStripButtonFastDelete = new System.Windows.Forms.ToolStripButton();
             this.ToolStripButtonDelete = new System.Windows.Forms.ToolStripButton();
@@ -128,7 +130,9 @@
             this.ToolStripMenuItemRemove,
             this.ToolStripMenuItemClearList,
             this.toolStripSeparator2,
-            this.ToolStripMenuItemFix});
+            this.ToolStripMenuItemFix,
+            this.toolStripSeparator5,
+            this.ToolStripMenuItemProtectSystem});
             this.ToolStripDropDownButtonEdit.Image = ((System.Drawing.Image)(resources.GetObject("ToolStripDropDownButtonEdit.Image")));
             this.ToolStripDropDownButtonEdit.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.ToolStripDropDownButtonEdit.Name = "ToolStripDropDownButtonEdit";
@@ -166,6 +170,20 @@
             this.ToolStripMenuItemFix.Size = new System.Drawing.Size(220, 22);
             this.ToolStripMenuItemFix.Text = "Fix invalid path";
             this.ToolStripMenuItemFix.Click += new System.EventHandler(this.ToolStripMenuItemFix_Click);
+            // 
+            // toolStripSeparator5
+            // 
+            this.toolStripSeparator5.Name = "toolStripSeparator5";
+            this.toolStripSeparator5.Size = new System.Drawing.Size(217, 6);
+            // 
+            // ToolStripMenuItemProtectSystem
+            // 
+            this.ToolStripMenuItemProtectSystem.Checked = true;
+            this.ToolStripMenuItemProtectSystem.CheckOnClick = true;
+            this.ToolStripMenuItemProtectSystem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.ToolStripMenuItemProtectSystem.Name = "ToolStripMenuItemProtectSystem";
+            this.ToolStripMenuItemProtectSystem.Size = new System.Drawing.Size(220, 22);
+            this.ToolStripMenuItemProtectSystem.Text = "Protect system folder";
             // 
             // toolStripSeparator4
             // 
@@ -263,6 +281,8 @@
         private System.Windows.Forms.ToolStripMenuItem ToolStripMenuItemClearList;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripMenuItem ToolStripMenuItemFix;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
+        private System.Windows.Forms.ToolStripMenuItem ToolStripMenuItemProtectSystem;
         private System.Windows.Forms.ToolStripMenuItem ToolStripMenuItemSource;
         private System.Windows.Forms.ToolStripButton ToolStripButtonFastDelete;
     }

@@ -89,6 +89,7 @@
       <DependentUpon>OpenFileDialogLite.cs</DependentUpon>
     </Compile>
     <Compile Include="Internals\FileNDir.cs" />
+    <Compile Include="Internals\SystemFileProtector.cs" />
     <Compile Include="Internals\DefaultIcons.cs" />
     <Compile Include="Internals\PipeService.cs" />
     <Compile Include="Internals\Utils.cs" />

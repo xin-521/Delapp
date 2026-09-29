@@ -16,6 +16,7 @@
         public override string UI_Edit_RemoveFromList => "Remove from list";
         public override string UI_Edit_ClearList => "Clear list";
         public override string UI_Edit_FixPath => "Fix invalid path";
+        public override string UI_Edit_ProtectSystem => "Protect system folder";
 
         public override string UI_FastDelete => "Fast delete";
         public override string UI_Delete => "Delete";

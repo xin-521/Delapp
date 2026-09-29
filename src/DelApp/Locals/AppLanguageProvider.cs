@@ -20,6 +20,7 @@
         public abstract string UI_Edit_RemoveFromList { get; }
         public abstract string UI_Edit_ClearList { get; }
         public abstract string UI_Edit_FixPath { get; }
+        public abstract string UI_Edit_ProtectSystem { get; }
 
         public abstract string UI_FastDelete { get; }
         public abstract string UI_Delete { get; }
